@@ -119,13 +119,22 @@ class PromptCache:
 
 class LLMClient:
     """
-    LLM client that wraps OpenAI-compatible APIs via httpx.
-    Supports DeepSeek, DashScope, and any compatible endpoint.
+    Universal LLM client that wraps any OpenAI-compatible API via httpx.
+
+    Supported providers (auto-detected by model name):
+    - DeepSeek, DashScope (Qwen/通义千问), OpenAI, Groq, Together, vLLM, Ollama, LM Studio
+    - Any custom endpoint via API_URL environment variable
+
+    Simply set the model name and API endpoint, and it works.
     """
 
     DEFAULT_ENDPOINTS = {
         "deepseek": "https://api.deepseek.com/v1/chat/completions",
         "dashscope": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "openai": "https://api.openai.com/v1/chat/completions",
+        "groq": "https://api.groq.com/openai/v1/chat/completions",
+        "together": "https://api.together.xyz/v1/chat/completions",
+        "ollama": "http://localhost:11434/v1/chat/completions",
     }
 
     def __init__(self, model: str, temperature: float = 0.3, max_tokens: int = 4096, use_cache: bool = True):
@@ -139,27 +148,61 @@ class LLMClient:
         self.cache = PromptCache() if use_cache else None
 
     def _resolve_endpoint(self) -> str:
-        """Resolve the API endpoint based on model name or settings."""
+        """Resolve the API endpoint based on model name or settings.
+
+        Auto-detection rules:
+        1. If API_URL is set, use it (overrides everything)
+        2. Match model name against known providers (deepseek, qwen, groq, etc.)
+        3. Default to empty string - user must configure endpoint
+        """
         custom_url = self.settings.get("api_url", "")
         if custom_url:
             return custom_url
 
         model_lower = self.model.lower()
-        # Check model name for routing
+
+        # Check model name for provider keywords
         for key, url in self.DEFAULT_ENDPOINTS.items():
             if key in model_lower:
                 return url
 
-        # If model starts with "qwen", route to DashScope
+        # Specific model patterns
         if model_lower.startswith("qwen"):
             return self.DEFAULT_ENDPOINTS["dashscope"]
+        if model_lower.startswith("gpt"):
+            return self.DEFAULT_ENDPOINTS["openai"]
+        if model_lower.startswith("llama"):
+            # Could be Groq, Together, or local - default to empty
+            pass
+        if model_lower.startswith("mistral"):
+            return self.DEFAULT_ENDPOINTS["together"]
 
-        # Default to DeepSeek for backward compatibility
-        return self.DEFAULT_ENDPOINTS["deepseek"]
+        # Unknown model - return empty, user must set API_URL
+        return ""
 
     def _get_api_key(self) -> str:
-        """Get API key from environment variables."""
-        return find_api_key()
+        """Get API key from environment variables.
+
+        Checks multiple environment variable names for compatibility:
+        API_KEY, DASHSCOPE_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY,
+        GROQ_API_KEY, TOGETHER_API_KEY, etc.
+
+        Returns:
+            API key string, or empty string if none found.
+        """
+        # Try generic name first
+        api_key = os.getenv("API_KEY", "")
+        if api_key:
+            return api_key
+
+        # Try provider-specific names
+        for key_name in ["DASHSCOPE_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY",
+                         "GROQ_API_KEY", "TOGETHER_API_KEY", "ANTHROPIC_API_KEY"]:
+            api_key = os.getenv(key_name, "")
+            if api_key:
+                return api_key
+
+        return ""
 
     def _build_headers(self, api_key: str) -> dict:
         """Build request headers with API key."""
@@ -246,7 +289,14 @@ class LLMClient:
         if not api_key:
             return LLMResponse(
                 content="", success=False, model=self.model,
-                error="No API key found (set DASHSCOPE_API_KEY, DEEPSEEK_API_KEY, or OPENAI_API_KEY)"
+                error="No API key found. Set one of: API_KEY, DASHSCOPE_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, etc."
+            )
+
+        # Check if endpoint is configured
+        if not self.endpoint:
+            return LLMResponse(
+                content="", success=False, model=self.model,
+                error="No API endpoint configured. Set API_URL environment variable or use a known model name (deepseek-*, qwen-*, gpt-*, etc.)"
             )
 
         messages = [

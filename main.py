@@ -38,13 +38,30 @@ def _validate_config(settings: dict = None) -> bool:
     return is_valid
 
 
-@click.group()
-def cli():
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
     """AI Code Review & Intelligent Fix Agent.
 
     Multi-agent collaborative automated code review tool.
     """
-    pass
+    if ctx.invoked_subcommand is None:
+        try:
+            from interactive import interactive as _interactive
+            _interactive()
+        except ImportError:
+            console.print("[yellow]Interactive mode unavailable, please use a subcommand (e.g. review, scan). Use --help for all options.[/yellow]")
+
+
+@cli.command()
+def interactive():
+    """Start interactive terminal menu mode."""
+    try:
+        from interactive import interactive as _interactive
+        _interactive()
+    except ImportError:
+        console.print("[red]Interactive mode unavailable: cannot find interactive.py module.[/red]")
+        raise SystemExit(1)
 
 
 @cli.command()

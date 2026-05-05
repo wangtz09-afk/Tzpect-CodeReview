@@ -22,7 +22,7 @@ Multi-agent collaborative automated code review tool. Built on LLM APIs (DeepSee
 - **File Output**: Save review results as JSON and Markdown files
 - **GitHub Actions Integration**: Automated PR comments with review results
 - **Apply Fixes**: Automatically apply AI-generated fixes to source files
-- **Comprehensive Testing**: 212 unit tests covering all modules
+- **Comprehensive Testing**: 284 unit tests covering all modules
 
 ## Installation
 
@@ -69,6 +69,29 @@ VERIFIER_MODEL=deepseek-v4-flash
 ```
 
 ## Usage
+
+### Interactive Mode (Recommended)
+
+Start without arguments for a guided terminal menu:
+
+```bash
+py -3 main.py
+```
+
+Or explicitly:
+
+```bash
+py -3 main.py interactive
+```
+
+You'll be guided through:
+1. **Select action** — Review / Scan / Fix / HTML Report
+2. **Enter path** — paste your project path (e.g. `D:\code\myproject`)
+3. **Output format** — Terminal / JSON / Markdown / HTML / HTML+Save
+4. **Language filter** — optional (Python / Java / Go / etc.)
+5. **Severity filter** — optional (Critical / High / Medium / All)
+
+Quick commands: type `review`, `scan`, `fix`, or `html` to skip straight to that action.
 
 ### Basic Review
 
@@ -180,9 +203,10 @@ code-review-agent/
 │   └── progress_dashboard.py     # Real-time progress dashboard
 ├── config.py                     # Configuration management
 ├── main.py                       # CLI entry point
+├── interactive.py                # Interactive terminal menu mode
 ├── pyproject.toml                # Project metadata
 ├── requirements.txt              # Dependencies
-└── tests/                        # 212 unit tests
+└── tests/                        # 284 unit tests
 ```
 
 ## Review Checks
@@ -250,6 +274,9 @@ py -3 -m pytest tests/test_git_ops.py -v
 ```
 
 ## CLI Reference
+
+### interactive
+Start the interactive terminal menu (or run `py -3 main.py` with no arguments).
 
 ### review
 Review code changes in a repository.

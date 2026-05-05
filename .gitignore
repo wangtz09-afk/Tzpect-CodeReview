@@ -43,6 +43,7 @@ ENV/
 .code_review_logs/
 review-output/
 review-output-final/
+tzpect-results/
 
 # OS
 .DS_Store

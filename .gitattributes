@@ -1,0 +1,10 @@
+# Auto-detect text files and use native line endings
+* text=auto
+
+# Force specific files to use LF (for cross-platform consistency)
+*.py text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf

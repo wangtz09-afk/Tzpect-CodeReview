@@ -1,6 +1,6 @@
 # Tzpect-CodeReview
 
-> 基于多 Agent 协作的自动化代码审查工具。基于 LLM API（DeepSeek、通义千问或任意 OpenAI 兼容端点），审查代码变更、生成修复、运行测试、最终验证 — 全部附带详细推理。
+> 基于多 Agent 协作的自动化代码审查工具。支持**任意 OpenAI 兼容 API**（DeepSeek、通义千问、OpenAI、Groq、Ollama、LM Studio 等），审查代码变更、生成修复、运行测试、最终验证 — 全部附带详细推理。
 
 ## 特性
 
@@ -44,26 +44,49 @@ cp .env.example .env
 编辑 `.env`：
 
 ```bash
-# 必填：DeepSeek 或通义千问 API Key
-DASHSCOPE_API_KEY=your-api-key-here
+# ── API Key（必填：设置至少一个）───
+# 通用密钥（任何提供商）
+API_KEY=sk-your-api-key-here
 
-# 可选：自定义 API URL（任意 OpenAI 兼容端点）
+# 或使用提供商特定的名称：
+# DASHSCOPE_API_KEY=...    # 通义千问/千问
+# DEEPSEEK_API_KEY=...     # DeepSeek
+# OPENAI_API_KEY=...       # OpenAI GPT
+# GROQ_API_KEY=...         # Groq (Llama, Mistral)
+# TOGETHER_API_KEY=...     # Together AI
+# ANTHROPIC_API_KEY=...    # Anthropic (通过 OpenAI 兼容代理)
+
+# ── 自定义 API 端点（可选，推荐使用）───
+# 设置此项可使用任何自定义/OpenAI 兼容端点
+# 示例：
+#   API_URL=https://api.openai.com/v1/chat/completions
+#   API_URL=https://api.groq.com/openai/v1/chat/completions
+#   API_URL=http://localhost:11434/v1/chat/completions    # Ollama
+#   API_URL=http://localhost:1234/v1/chat/completions     # LM Studio
 # API_URL=https://your-custom-endpoint/v1/chat/completions
 
-# 模型选择
-REVIEWER_MODEL=deepseek-v4-flash
-FIXER_MODEL=deepseek-v4-flash
-TESTER_MODEL=deepseek-v4-flash
-VERIFIER_MODEL=deepseek-v4-flash
+# ── 模型选择（必填）───
+# 设置你的 API 提供商提供的模型名称
+# 示例：
+#   DeepSeek: deepseek-chat, deepseek-coder
+#   Qwen/通义：qwen-max, qwen-plus, qwen-turbo
+#   OpenAI: gpt-4o, gpt-4-turbo, gpt-3.5-turbo
+#   Groq: llama-3.1-70b-versatile, mixtral-8x7b-32768
+#   Together: meta-llama/Llama-3-70b-chat-hf
+#   Ollama: llama3.1, codellama, deepseek-coder
+REVIEWER_MODEL=your-model-name
+FIXER_MODEL=your-model-name
+TESTER_MODEL=your-model-name
+VERIFIER_MODEL=your-model-name
 
-# LLM 参数
+# ── LLM 参数（可选）───
 # MAX_TOKENS=4096
 # TEMPERATURE=0.3
 
-# 审查参数
+# ── 审查参数（可选）───
 # MAX_FILES_PER_RUN=20
 
-# API 超时和重试
+# ── API 超时和重试（可选）───
 # API_TIMEOUT=180
 # MAX_RETRIES=3
 ```
