@@ -1,5 +1,10 @@
 # Tzpect-CodeReview
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Code Review](https://img.shields.io/badge/code-review-green.svg)](https://github.com/wangtz09-afk/Tzpect-CodeReview)
+[![AI Powered](https://img.shields.io/badge/AI-powered-ff69b4.svg)](https://github.com/wangtz09-afk/Tzpect-CodeReview)
+
 > AI Code Review & Intelligent Fix Agent
 
 Multi-agent collaborative automated code review tool. Built on LLM APIs (DeepSeek, DashScope, or any OpenAI-compatible endpoint), it reviews code changes, generates fixes, runs tests, and provides final verification — all with detailed reasoning.
