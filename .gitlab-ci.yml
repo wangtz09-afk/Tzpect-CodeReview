@@ -1,0 +1,69 @@
+# GitLab CI configuration for AI Code Review
+# Add DASHSCOPE_API_KEY to GitLab CI/CD variables (Settings > CI/CD > Variables)
+
+stages:
+  - test
+  - review
+  - deploy
+
+variables:
+  PYTHON_VERSION: "3.11"
+  REVIEW_MODEL: "deepseek-v4-flash"
+
+# Run unit tests
+test:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install -r requirements.txt pytest
+    - py -3 -m pytest tests/ -v --tb=short --junitxml=test-report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-report.xml
+    paths:
+      - test-report.xml
+
+# AI Code Review for merge requests
+ai-review:
+  stage: review
+  image: python:${PYTHON_VERSION}
+  needs: [test]
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+  script:
+    - pip install click rich
+    - export DASHSCOPE_API_KEY=$DASHSCOPE_API_KEY
+    - export REVIEWER_MODEL=$REVIEW_MODEL
+    - export FIXER_MODEL=$REVIEW_MODEL
+    - export TESTER_MODEL=$REVIEW_MODEL
+    - export VERIFIER_MODEL=$REVIEW_MODEL
+    # Get merge request target branch
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - py -3 main.py review . --since origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME --markdown --output-dir review-output || true
+  artifacts:
+    when: always
+    paths:
+      - review-output/
+    reports:
+      codequality:
+        - review-output/*.sarif
+    expire_in: 7 days
+
+# Scheduled full-project review
+weekly-review:
+  stage: review
+  image: python:${PYTHON_VERSION}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - pip install click rich
+    - export DASHSCOPE_API_KEY=$DASHSCOPE_API_KEY
+    - export REVIEWER_MODEL=$REVIEW_MODEL
+    - export FIXER_MODEL=$REVIEW_MODEL
+    - py -3 main.py scan . --language python,java,javascript --max-files 50 --html --output-dir review-output || true
+  artifacts:
+    when: always
+    paths:
+      - review-output/
+    expire_in: 30 days

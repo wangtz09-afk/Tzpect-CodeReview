@@ -1,0 +1,98 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main, master]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install click rich
+
+      - name: Get changes (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+      - name: Run AI Code Review (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          REVIEWER_MODEL: deepseek-v4-flash
+          FIXER_MODEL: deepseek-v4-flash
+          TESTER_MODEL: deepseek-v4-flash
+          VERIFIER_MODEL: deepseek-v4-flash
+        run: |
+          cd $GITHUB_WORKSPACE
+          # Review changes since base branch
+          py -3 main.py review . --since origin/${{ github.base_ref }} --markdown --output-dir review-output || true
+        continue-on-error: true
+
+      - name: Run AI Code Review (Push)
+        if: github.event_name == 'push'
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          REVIEWER_MODEL: deepseek-v4-flash
+          FIXER_MODEL: deepseek-v4-flash
+          TESTER_MODEL: deepseek-v4-flash
+          VERIFIER_MODEL: deepseek-v4-flash
+        run: |
+          cd $GITHUB_WORKSPACE
+          py -3 main.py review . --markdown --output-dir review-output || true
+        continue-on-error: true
+
+      - name: Upload review results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-review-results
+          path: review-output/
+          retention-days: 7
+
+      - name: Comment PR with review
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            try {
+              const reviewDir = 'review-output';
+              const files = fs.readdirSync(reviewDir);
+              const mdFiles = files.filter(f => f.endsWith('.md'));
+              if (mdFiles.length > 0) {
+                const content = fs.readFileSync(path.join(reviewDir, mdFiles[mdFiles.length - 1]), 'utf8');
+                // GitHub PR comment has 65536 char limit
+                const truncated = content.length > 65000 ? content.substring(0, 65000) + '\n...(truncated)' : content;
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: truncated
+                });
+              }
+            } catch (e) {
+              console.log('Failed to comment:', e.message);
+            }

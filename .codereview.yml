@@ -1,0 +1,50 @@
+# Code Review Agent - Custom Rules Configuration
+# Place this file as .codereview.yml in your project root
+
+# Files or directories to ignore (fnmatch patterns)
+ignore_patterns:
+  - "tests/*"
+  - "**/generated/**"
+  - "migrations/**"
+  - "conftest.py"
+
+# Disable specific check categories
+disabled_checks:
+  - style  # Don't report style issues
+
+# Override severity for specific issue types
+severity_overrides:
+  "SQL Injection": critical
+  "N+1 Queries": high
+
+# Only enable specific checks (whitelist mode)
+# If set, disabled_checks is ignored
+# enabled_checks:
+#   - security
+#   - bugs
+
+# Custom instructions shown to the reviewer
+custom_instructions: |
+  Be strict about null handling in method parameters.
+  All public methods must validate their inputs.
+  Use Optional<T> for nullable return types.
+
+# Custom rules using regex patterns
+rules:
+  - pattern: "TODO|FIXME|HACK"
+    description: "Found TODO/FIXME comment — should be resolved before merge"
+    severity: low
+    type: style
+
+  - pattern: "print\\s*\\("
+    description: "Use logging instead of print statements"
+    severity: low
+    type: style
+    languages:
+      - python
+
+# Maximum issues to report per review
+max_issues: 50
+
+# Minimum severity to report (low, medium, high, critical)
+min_severity: low

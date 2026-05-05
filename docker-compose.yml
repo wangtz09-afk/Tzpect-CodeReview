@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  review:
+    build: .
+    env_file: .env
+    volumes:
+      - ./review-output:/app/review-output
+      - ./logs:/app/.code_review_logs
+      - ./checkpoints:/app/.checkpoints
+      # Mount the code to review
+      - ../target-project:/repo:ro
+    command: review /repo --output-dir /app/review-output --verbose
+
+  test:
+    build: .
+    command: -m pytest tests/ -v --cov=agents --cov=core --cov=utils --cov-report=html
